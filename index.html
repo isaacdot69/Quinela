@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Quinela Futbolera - $20</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; text-align: center; padding: 20px; }
+        .contenedor { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .pago-info { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #856404; }
+        .partido { border-bottom: 1px solid #eee; padding: 15px 0; }
+        input[type="text"] { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; background: white; }
+        button.seleccionado { background: #28a745; color: white; border-color: #1e7e34; font-weight: bold; }
+        #btnEnviar { background: #25d366; color: white; border: none; padding: 15px; width: 100%; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor">
+        <h1>🏆 Quinela del Proyecto</h1>
+        
+        <div class="pago-info">
+            <strong>💰 Costo: $20 MXN</strong><br>
+            💳 Transferir a: <strong>1234 5678 9012 3456</strong><br>
+            <em>Banco: Mercado pago - A nombre de: ANgel Isaac Gtz</em>
+        </div>
+
+        <input type="text" id="nombreUsuario" placeholder="Escribe tu nombre completo" required>
+        
+        <div id="contenedor-partidos"></div>
+
+        <button id="btnEnviar">✅ Guardar y Enviar Comprobante</button>
+    </div>
+
+    <script>
+        const partidos = [
+            { id: 1, local: "Real Madrid", visitante: "Barcelona" },
+            { id: 2, local: "Chivas", visitante: "América" },
+            { id: 3, local: "Liverpool", visitante: "Man City" }
+        ];
+
+        const pronosticos = {};
+        const lista = document.getElementById('contenedor-partidos');
+
+        partidos.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'partido';
+            div.innerHTML = `
+                <h3>${p.local} vs ${p.visitante}</h3>
+                <button onclick="seleccionar(${p.id}, 'Local', this)">L</button>
+                <button onclick="seleccionar(${p.id}, 'Empate', this)">E</button>
+                <button onclick="seleccionar(${p.id}, 'Visitante', this)">V</button>
+            `;
+            lista.appendChild(div);
+        });
+
+        function seleccionar(id, valor, boton) {
+            pronosticos[id] = valor;
+            const hermanos = boton.parentElement.querySelectorAll('button');
+            hermanos.forEach(b => b.classList.remove('seleccionado'));
+            boton.classList.add('seleccionado');
+        }
+
+        document.getElementById('btnEnviar').onclick = async () => {
+            const nombre = document.getElementById('nombreUsuario').value;
+            
+            if (!nombre || Object.keys(pronosticos).length < partidos.length) {
+                alert("⚠️ Por favor completa tu nombre y todos los partidos.");
+                return;
+            }
+
+            try {
+                // 1. Guardar en la base de datos
+                await fetch('/enviar-quinela', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, pronosticos })
+                });
+
+                // 2. Crear mensaje para WhatsApp
+                const numTelefono = "523325223242"; // Ejemplo: 5213312345678
+                let texto = `¡Hola! Ya registré mi quinela.\n👤 Nombre: ${nombre}\n⚽ Resultados: ${JSON.stringify(pronosticos)}\n\nAdjunto foto de mi comprobante de $20.`;
+                const urlWhastapp = `https://wa.me/${numTelefono}?text=${encodeURIComponent(texto)}`;
+
+                // 3. Redirigir
+                alert("¡Datos guardados! Te redirigiremos a WhatsApp para enviar tu comprobante.");
+                window.location.href = urlWhastapp;
+
+            } catch (error) {
+                alert("Error al conectar con el servidor.");
+            }
+        };
+    </script>
+</body>
+</html>
