@@ -19,6 +19,7 @@
   "homepage": "https://github.com/isaacdot69/Quinela#readme",
   "description": "",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "mongoose": "^9.6.2"
   }

@@ -12,6 +12,62 @@
         button { padding: 10px 15px; margin: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; background: white; }
         button.seleccionado { background: #28a745; color: white; border-color: #1e7e34; font-weight: bold; }
         #btnEnviar { background: #25d366; color: white; border: none; padding: 15px; width: 100%; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        
+        /* Pantalla completa de carga */
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Un poco más oscuro */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; 
+            display: none; 
+        }
+
+        /* El círculo verde que gira */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #28a745; 
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Texto de aviso */
+        .loader-text {
+            color: white;
+            font-family: sans-serif;
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        /* Botón de WhatsApp de respaldo */
+        #btnWhatsRespaldo {
+            display: none; /* Oculto al principio */
+            background: #25d366;
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -22,7 +78,7 @@
         <div class="pago-info">
             <strong>💰 Costo: $20 MXN</strong><br>
             💳 Transferir a: <strong>1234 5678 9012 3456</strong><br>
-            <em>Banco: Mercado pago - A nombre de: ANgel Isaac Gtz</em>
+            <em>Banco: Mercado pago - A nombre de: Angel Isaac Gtz</em>
         </div>
 
         <input type="text" id="nombreUsuario" placeholder="Escribe tu nombre completo" required>
@@ -30,6 +86,12 @@
         <div id="contenedor-partidos"></div>
 
         <button id="btnEnviar">✅ Guardar y Enviar Comprobante</button>
+    </div>
+
+    <div id="miLoader" class="loader-container">
+        <div class="spinner" id="miSpinner"></div>
+        <div class="loader-text" id="miTextoLoader">Guardando tus pronósticos en la base de datos...</div>
+        <a id="btnWhatsRespaldo" href="#" target="_blank">📲 Clic aquí para enviar por WhatsApp</a>
     </div>
 
     <script>
@@ -63,31 +125,57 @@
 
         document.getElementById('btnEnviar').onclick = async () => {
             const nombre = document.getElementById('nombreUsuario').value;
+            const loader = document.getElementById('miLoader');
+            const spinner = document.getElementById('miSpinner');
+            const textoLoader = document.getElementById('miTextoLoader');
+            const btnRespaldo = document.getElementById('btnWhatsRespaldo');
             
             if (!nombre || Object.keys(pronosticos).length < partidos.length) {
                 alert("⚠️ Por favor completa tu nombre y todos los partidos.");
                 return;
             }
 
+            // Activar el loader de inmediato
+            loader.style.display = 'flex';
+            spinner.style.display = 'block';
+            btnRespaldo.style.display = 'none';
+            textoLoader.innerText = "Guardando tus pronósticos en la base de datos...";
+
             try {
-                // 1. Guardar en la base de datos
-                await fetch('/enviar-quinela', {
+                // 1. Guardar en la base de datos (MongoDB)
+                const respuesta = await fetch('/enviar-quinela', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nombre, pronosticos })
                 });
 
-                // 2. Crear mensaje para WhatsApp
-                const numTelefono = "523325223242"; // Ejemplo: 5213312345678
-                let texto = `¡Hola! Ya registré mi quinela.\n👤 Nombre: ${nombre}\n⚽ Resultados: ${JSON.stringify(pronosticos)}\n\nAdjunto foto de mi comprobante de $20.`;
+                if (!respuesta.ok) throw new Error('Error al guardar en BD');
+
+                // 2. Crear mensaje para WhatsApp estilizado
+                const numTelefono = "523325223242"; 
+                let partidosTexto = "";
+                partidos.forEach(p => {
+                    partidosTexto += `• ${p.local} vs ${p.visitante}: *${pronosticos[p.id]}*\n`;
+                });
+
+                let texto = `¡Hola! Ya registré mi quinela. ⚽🏆\n\n👤 *Nombre:* ${nombre}\n\n📝 *Mis Pronósticos:*\n${partidosTexto}\nAdjunto foto de mi comprobante de $20.`;
                 const urlWhastapp = `https://wa.me/${numTelefono}?text=${encodeURIComponent(texto)}`;
 
-                // 3. Redirigir
-                alert("¡Datos guardados! Te redirigiremos a WhatsApp para enviar tu comprobante.");
+                // 3. Modificar el Loader para mostrar el botón de acción real
+                spinner.style.display = 'none'; // Quitamos el círculo que gira porque ya guardó
+                textoLoader.innerHTML = "¡Datos guardados con éxito! 🎉<br><br>Tu navegador bloqueó el salto automático. Por favor, presiona el botón de abajo:";
+                
+                // Asignamos la ruta al botón físico y lo mostramos
+                btnRespaldo.href = urlWhastapp;
+                btnRespaldo.style.display = 'inline-block';
+
+                // Intentamos el salto automático de todas formas (por si las dudas)
                 window.location.href = urlWhastapp;
 
             } catch (error) {
-                alert("Error al conectar con el servidor.");
+                loader.style.display = 'none';
+                console.error(error);
+                alert("❌ Hubo un error al conectar con el servidor. Inténtalo de nuevo.");
             }
         };
     </script>
