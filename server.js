@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const ExcelJS = require('exceljs'); // 👈 1. Importamos la librería para Excel
+const ExcelJS = require('exceljs'); 
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -13,14 +13,66 @@ mongoose.connect(mongoURI)
     .then(() => console.log("✅ Conectado a MongoDB"))
     .catch(err => console.error("❌ Error de conexión", err));
 
-// Esquema actualizado con nombre
+// Esquema de Participantes (Quinelas guardadas)
 const Quinela = mongoose.model('Quinela', {
     nombre: String,
     pronosticos: Object,
     fecha: { type: Date, default: Date.now }
 });
 
-// Ruta para recibir los datos desde el frontend
+// Esquema para la Tabla de Calendario / Partidos de la Jornada
+const Partido = mongoose.model('Partido', {
+    id: Number,
+    local: String,
+    visitante: String,
+    fechaPartido: String,
+    horaPartido: String
+});
+
+// RUTA ADMINISTRATIVA: Borra todo lo viejo de la BD y carga los partidos de la imagen
+app.post('/admin/actualizar-jornada', async (req, res) => {
+    try {
+        // 1. Borrar todas las quinelas de usuarios del pasado
+        await Quinela.deleteMany({});
+        console.log("🗑️ Registros de usuarios anteriores eliminados.");
+
+        // 2. Borrar partidos de la jornada anterior
+        await Partido.deleteMany({});
+
+        // 3. Partidos extraídos exactamente de tu imagen (Jornada 1)
+        const partidosJornada1 = [
+            { id: 1, local: "Necaxa", visitante: "Atlante", fechaPartido: "16/7", horaPartido: "7:00 p.m." },
+            { id: 2, local: "Tijuana", visitante: "Tigres", fechaPartido: "16/7", horaPartido: "9:00 p.m." },
+            { id: 3, local: "San Luis", visitante: "Cruz Azul", fechaPartido: "17/7", horaPartido: "7:00 p.m." },
+            { id: 4, local: "León", visitante: "Atlas", fechaPartido: "17/7", horaPartido: "7:00 p.m." },
+            { id: 5, local: "Juárez", visitante: "Puebla", fechaPartido: "17/7", horaPartido: "9:00 p.m." },
+            { id: 6, local: "Pumas", visitante: "Pachuca", fechaPartido: "18/7", horaPartido: "5:00 p.m." },
+            { id: 7, local: "Monterrey", visitante: "Santos", fechaPartido: "18/7", horaPartido: "7:00 p.m." },
+            { id: 8, local: "Guadalajara", visitante: "Toluca", fechaPartido: "18/7", horaPartido: "7:00 p.m." },
+            { id: 9, local: "Querétaro", visitante: "América", fechaPartido: "18/7", horaPartido: "9:00 p.m." }
+        ];
+
+        // 4. Inyectar la nueva lista limpia
+        await Partido.insertMany(partidosJornada1);
+
+        res.json({ mensaje: "🚀 Sistema reiniciado: Usuarios limpiados y Jornada 1 cargada con éxito." });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensaje: "Error al reiniciar la jornada" });
+    }
+});
+
+// RUTA: Envía la lista de partidos de la base de datos al frontend
+app.get('/obtener-partidos', async (req, res) => {
+    try {
+        const partidos = await Partido.find().sort({ id: 1 });
+        res.json(partidos);
+    } catch (error) {
+        res.status(500).json({ mensaje: "Error al obtener partidos" });
+    }
+});
+
+// RUTA: Recibe la quinela jugada por un participante y la guarda
 app.post('/enviar-quinela', async (req, res) => {
     try {
         const { nombre, pronosticos } = req.body;
@@ -32,66 +84,48 @@ app.post('/enviar-quinela', async (req, res) => {
     }
 });
 
-// 👈 2. NUEVA RUTA: Generar y descargar el archivo Excel
+// RUTA: Genera el archivo Excel de descargas
 app.get('/exportar-excel', async (req, res) => {
     try {
-        // Traer todas las quinelas ordenadas por fecha reciente
         const resultados = await Quinela.find().sort({ fecha: -1 }).lean();
-
-        // Crear el libro de trabajo y una pestaña llamada "Participantes"
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Participantes');
 
-        // Configurar los encabezados de las columnas
         worksheet.columns = [
             { header: 'Nombre del Participante', key: 'nombre', width: 30 },
             { header: 'Fecha de Registro', key: 'fecha', width: 25 },
             { header: 'Pronósticos (Raw JSON)', key: 'pronosticos', width: 40 }
         ];
 
-        // Mapear los datos de MongoDB hacia las filas de Excel
         resultados.forEach(q => {
             worksheet.addRow({
                 nombre: q.nombre,
                 fecha: new Date(q.fecha).toLocaleString(),
-                pronosticos: JSON.stringify(q.pronosticos) // Guarda el objeto de elecciones como texto legible
+                pronosticos: JSON.stringify(q.pronosticos) 
             });
         });
 
-        // Aplicar un estilo rápido al encabezado (Opcional, para que se vea pro)
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
         worksheet.getRow(1).fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: '107C41' } // Verde característico de Excel
+            fgColor: { argb: '107C41' } 
         };
 
-        // Configurar las cabeceras HTTP para forzar la descarga en el navegador
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename=Quinelas_Mundial.xlsx'
-        );
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=Quinelas_Jornada.xlsx');
 
-        // Escribir el archivo directamente en la respuesta del servidor
         await workbook.xlsx.write(res);
         res.end();
-
     } catch (error) {
-        console.error("Error al exportar Excel:", error);
         res.status(500).send("Error al generar el archivo Excel");
     }
 });
 
-// Ruta para ver la tabla en HTML
+// RUTA HTML: Ver la tabla de registros en tiempo real
 app.get('/ver-resultados', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 });
-        
-        // Añadí un botón verde estilizado de Excel arriba de la tabla para descargar directo
         let html = `<html><head><title>Resultados</title>
         <style>
             body{font-family:sans-serif;text-align:center;padding:20px; background: #f8f9fa;}
@@ -104,10 +138,7 @@ app.get('/ver-resultados', async (req, res) => {
         </style></head><body>`;
         
         html += `<h1>📈 Participantes Registrados</h1>`;
-        
-        // 👈 Botón que apunta directo a nuestra nueva ruta de descarga
         html += `<a href="/exportar-excel" class="btn-excel">📊 Descargar Reporte Excel</a>`;
-        
         html += `<table><tr><th>Nombre</th><th>Fecha</th><th>Pronósticos</th></tr>`;
         resultados.forEach(q => {
             html += `<tr><td>${q.nombre}</td><td>${new Date(q.fecha).toLocaleString()}</td><td>${JSON.stringify(q.pronosticos)}</td></tr>`;

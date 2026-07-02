@@ -20,7 +20,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Un poco más oscuro */
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -52,7 +52,7 @@
 
         /* Botón de WhatsApp de respaldo */
         #btnWhatsRespaldo {
-            display: none; /* Oculto al principio */
+            display: none;
             background: #25d366;
             color: white;
             text-decoration: none;
@@ -95,89 +95,114 @@
     </div>
 
     <script>
-        const partidos = [
-            { id: 1, local: "Real Madrid", visitante: "Barcelona" },
-            { id: 2, local: "Chivas", visitante: "América" },
-            { id: 3, local: "Liverpool", visitante: "Man City" }
-        ];
-
-        const pronosticos = {};
-        const lista = document.getElementById('contenedor-partidos');
-
-        partidos.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'partido';
-            div.innerHTML = `
-                <h3>${p.local} vs ${p.visitante}</h3>
-                <button onclick="seleccionar(${p.id}, 'Local', this)">L</button>
-                <button onclick="seleccionar(${p.id}, 'Empate', this)">E</button>
-                <button onclick="seleccionar(${p.id}, 'Visitante', this)">V</button>
-            `;
-            lista.appendChild(div);
-        });
-
-        function seleccionar(id, valor, boton) {
-            pronosticos[id] = valor;
-            const hermanos = boton.parentElement.querySelectorAll('button');
-            hermanos.forEach(b => b.classList.remove('seleccionado'));
-            boton.classList.add('seleccionado');
-        }
-
-        document.getElementById('btnEnviar').onclick = async () => {
-            const nombre = document.getElementById('nombreUsuario').value;
-            const loader = document.getElementById('miLoader');
-            const spinner = document.getElementById('miSpinner');
-            const textoLoader = document.getElementById('miTextoLoader');
-            const btnRespaldo = document.getElementById('btnWhatsRespaldo');
+        document.addEventListener("DOMContentLoaded", () => {
+            let partidos = []; 
+            const pronosticos = {};
             
-            if (!nombre || Object.keys(pronosticos).length < partidos.length) {
-                alert("⚠️ Por favor completa tu nombre y todos los partidos.");
-                return;
+            const lista = document.getElementById('contenedor-partidos');
+            const btnEnviar = document.getElementById('btnEnviar');
+
+            async function cargarPartidosDelServidor() {
+                if (!lista) return;
+                try {
+                    const respuesta = await fetch('/obtener-partidos');
+                    partidos = await respuesta.json();
+                    
+                    if (partidos.length === 0) {
+                        lista.innerHTML = "<p>⏳ No hay partidos cargados para esta jornada actualmente.</p>";
+                        return;
+                    }
+
+                    lista.innerHTML = ""; 
+                    partidos.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = 'partido';
+                        div.innerHTML = `
+                            <small style="color: #666; display: block; margin-top: 10px;">🗓️ ${p.fechaPartido || ''} - ⏰ ${p.horaPartido || ''}</small>
+                            <h3 style="margin: 5px 0 10px 0;">${p.local} vs ${p.visitante}</h3>
+                            <button class="btn-opcion" data-id="${p.id}" data-valor="Local">L</button>
+                            <button class="btn-opcion" data-id="${p.id}" data-valor="Empate">E</button>
+                            <button class="btn-opcion" data-id="${p.id}" data-valor="Visitante">V</button>
+                        `;
+                        lista.appendChild(div);
+                    });
+
+                    // Asignar clics a los botones creados
+                    lista.querySelectorAll('.btn-opcion').forEach(boton => {
+                        boton.onclick = function() {
+                            const id = this.getAttribute('data-id');
+                            const valor = this.getAttribute('data-valor');
+                            
+                            pronosticos[id] = valor;
+                            
+                            const hermanos = this.parentElement.querySelectorAll('.btn-opcion');
+                            hermanos.forEach(b => b.classList.remove('seleccionado'));
+                            this.classList.add('seleccionado');
+                        };
+                    });
+
+                } catch (error) {
+                    console.error("Error al cargar partidos:", error);
+                    lista.innerHTML = "<p>❌ Error al cargar el calendario de partidos.</p>";
+                }
             }
 
-            // Activar el loader de inmediato
-            loader.style.display = 'flex';
-            spinner.style.display = 'block';
-            btnRespaldo.style.display = 'none';
-            textoLoader.innerText = "Guardando tus pronósticos en la base de datos...";
+            cargarPartidosDelServidor();
 
-            try {
-                // 1. Guardar en la base de datos (MongoDB)
-                const respuesta = await fetch('/enviar-quinela', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, pronosticos })
-                });
+            if (btnEnviar) {
+                btnEnviar.onclick = async () => {
+                    const nombre = document.getElementById('nombreUsuario').value;
+                    const loader = document.getElementById('miLoader');
+                    const spinner = document.getElementById('miSpinner');
+                    const textoLoader = document.getElementById('miTextoLoader');
+                    const btnRespaldo = document.getElementById('btnWhatsRespaldo');
+                    
+                    if (!nombre || Object.keys(pronosticos).length < partidos.length) {
+                        alert("⚠️ Por favor completa tu nombre y todos los partidos.");
+                        return;
+                    }
 
-                if (!respuesta.ok) throw new Error('Error al guardar en BD');
+                    loader.style.display = 'flex';
+                    if(spinner) spinner.style.display = 'block';
+                    if(btnRespaldo) btnRespaldo.style.display = 'none';
+                    if(textoLoader) textoLoader.innerText = "Guardando tus pronósticos en la base de datos...";
 
-                // 2. Crear mensaje para WhatsApp estilizado
-                const numTelefono = "523325223242"; 
-                let partidosTexto = "";
-                partidos.forEach(p => {
-                    partidosTexto += `• ${p.local} vs ${p.visitante}: *${pronosticos[p.id]}*\n`;
-                });
+                    try {
+                        const respuesta = await fetch('/enviar-quinela', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nombre, pronosticos })
+                        });
 
-                let texto = `¡Hola! Ya registré mi quinela. ⚽🏆\n\n👤 *Nombre:* ${nombre}\n\n📝 *Mis Pronósticos:*\n${partidosTexto}\nAdjunto foto de mi comprobante de $20.`;
-                const urlWhastapp = `https://wa.me/${numTelefono}?text=${encodeURIComponent(texto)}`;
+                        if (!respuesta.ok) throw new Error('Error al guardar en BD');
 
-                // 3. Modificar el Loader para mostrar el botón de acción real
-                spinner.style.display = 'none'; // Quitamos el círculo que gira porque ya guardó
-                textoLoader.innerHTML = "¡Datos guardados con éxito! 🎉<br><br>Tu navegador bloqueó el salto automático. Por favor, presiona el botón de abajo:";
-                
-                // Asignamos la ruta al botón físico y lo mostramos
-                btnRespaldo.href = urlWhastapp;
-                btnRespaldo.style.display = 'inline-block';
+                        const numTelefono = "523325223242"; 
+                        let partidosTexto = "";
+                        partidos.forEach(p => {
+                            partidosTexto += `• ${p.local} vs ${p.visitante}: *${pronosticos[p.id]}*\n`;
+                        });
 
-                // Intentamos el salto automático de todas formas (por si las dudas)
-                window.location.href = urlWhastapp;
+                        let texto = `¡Hola! Ya registré mi quinela. ⚽🏆\n\n👤 *Nombre:* ${nombre}\n\n📝 *Mis Pronósticos:*\n${partidosTexto}\nAdjunto foto de mi comprobante de $20.`;
+                        const urlWhastapp = `https://wa.me/${numTelefono}?text=${encodeURIComponent(texto)}`;
 
-            } catch (error) {
-                loader.style.display = 'none';
-                console.error(error);
-                alert("❌ Hubo un error al conectar con el servidor. Inténtalo de nuevo.");
+                        if(spinner) spinner.style.display = 'none'; 
+                        if(textoLoader) textoLoader.innerHTML = "¡Datos guardados con éxito! 🎉<br><br>Tu navegador bloqueó el salto automático. Por favor, presiona el botón de abajo:";
+                        
+                        if(btnRespaldo) {
+                            btnRespaldo.href = urlWhastapp;
+                            btnRespaldo.style.display = 'inline-block';
+                        }
+
+                        window.location.href = urlWhastapp;
+
+                    } catch (error) {
+                        if(loader) loader.style.display = 'none';
+                        console.error(error);
+                        alert("❌ Hubo un error al conectar con el servidor. Inténtalo de nuevo.");
+                    }
+                };
             }
-        };
+        });
     </script>
 </body>
 </html>
