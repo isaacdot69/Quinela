@@ -7,6 +7,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('.'));
 
+// Tu cadena de conexión a MongoDB Atlas
 const mongoURI = 'mongodb+srv://ig27sales_db_user:LfYYeM8SldwkXT9L@cluster0.a7nleu1.mongodb.net/quinela?appName=Cluster0';
 
 mongoose.connect(mongoURI)
@@ -29,7 +30,7 @@ const Partido = mongoose.model('Partido', {
     horaPartido: String
 });
 
-// RUTA ADMINISTRATIVA: Borra todo lo viejo de la BD y carga los partidos de la imagen
+// RUTA ADMINISTRATIVA: Borra todo lo viejo de la BD y carga los partidos de la Jornada 1
 app.post('/admin/actualizar-jornada', async (req, res) => {
     try {
         // 1. Borrar todas las quinelas de usuarios del pasado
@@ -39,7 +40,7 @@ app.post('/admin/actualizar-jornada', async (req, res) => {
         // 2. Borrar partidos de la jornada anterior
         await Partido.deleteMany({});
 
-        // 3. Partidos extraídos exactamente de tu imagen (Jornada 1)
+        // 3. Partidos extraídos exactamente de tu jornada inicial
         const partidosJornada1 = [
             { id: 1, local: "Necaxa", visitante: "Atlante", fechaPartido: "16/7", horaPartido: "7:00 p.m." },
             { id: 2, local: "Tijuana", visitante: "Tigres", fechaPartido: "16/7", horaPartido: "9:00 p.m." },
@@ -122,31 +123,67 @@ app.get('/exportar-excel', async (req, res) => {
     }
 });
 
-// RUTA HTML: Ver la tabla de registros en tiempo real
+// RUTA HTML: Panel de Administración / Ver la tabla de registros en tiempo real
 app.get('/ver-resultados', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 });
+        
         let html = `<html><head><title>Resultados</title>
         <style>
             body{font-family:sans-serif;text-align:center;padding:20px; background: #f8f9fa;}
             table{margin:auto;border-collapse:collapse;width:90%; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden;}
             th,td{padding:12px;border:1px solid #eee;}
             th{background:#28a745;color:white;}
-            .btn-excel { display: inline-block; padding: 10px 20px; background: #107c41; color: white; text-decoration: none; font-weight: bold; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+            .btn-excel { display: inline-block; padding: 10px 20px; background: #107c41; color: white; text-decoration: none; font-weight: bold; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-size: 14px; border: none; cursor: pointer; }
             .btn-excel:hover { background: #0b592e; }
+            .btn-reiniciar { display: inline-block; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; font-weight: bold; border-radius: 5px; margin-bottom: 20px; margin-left: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-size: 14px; border: none; cursor: pointer; }
+            .btn-reiniciar:hover { background: #a71d2a; }
             .btn-volver { display: inline-block; margin-top: 20px; color: #555; text-decoration: none; }
         </style></head><body>`;
         
         html += `<h1>📈 Participantes Registrados</h1>`;
+        
+        // Botón de descarga de Excel existente
         html += `<a href="/exportar-excel" class="btn-excel">📊 Descargar Reporte Excel</a>`;
+        
+        // NUEVO: Botón Rojo de Reinicio
+        html += `<button id="btnReiniciarTodo" class="btn-reiniciar">⚠️ Cambiar/Reiniciar Jornada</button>`;
+        
         html += `<table><tr><th>Nombre</th><th>Fecha</th><th>Pronósticos</th></tr>`;
         resultados.forEach(q => {
             html += `<tr><td>${q.nombre}</td><td>${new Date(q.fecha).toLocaleString()}</td><td>${JSON.stringify(q.pronosticos)}</td></tr>`;
         });
-        html += `</table><br><a href="/" class="btn-volver">← Volver al Inicio</a></body></html>`;
+        html += `</table><br><a href="/" class="btn-volver">← Volver al Inicio</a>`;
+
+        // NUEVO: Script de validación con contraseña integrado para proteger la base de datos
+        html += `
+        <script>
+            document.getElementById('btnReiniciarTodo').onclick = async () => {
+                const password = prompt("Introduce la contraseña de administrador:");
+                if (password !== 'admin123') { 
+                    alert("❌ Contraseña incorrecta.");
+                    return;
+                }
+                if (confirm("🚨 ¿Seguro que quieres BORRAR el historial de apuestas y cargar de nuevo los partidos limpios?")) {
+                    try {
+                        const res = await fetch('/admin/actualizar-jornada', { method: 'POST' });
+                        const data = await res.json();
+                        alert("🎉 " + data.mensaje);
+                        location.reload();
+                    } catch (e) {
+                        alert("❌ Error al conectar con el servidor.");
+                    }
+                }
+            };
+        </script>
+        `;
+
+        html += `</body></html>`;
         
         res.send(html);
-    } catch (error) { res.send("Error"); }
+    } catch (error) { 
+        res.send("Error al cargar la página de resultados"); 
+    }
 });
 
 app.listen(port, () => console.log(`🚀 Servidor en http://localhost:${port}`));
