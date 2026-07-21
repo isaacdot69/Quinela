@@ -41,7 +41,7 @@ app.post('/admin/actualizar-jornada', async (req, res) => {
         await Partido.deleteMany({});
 
         // 3. Partidos extraídos exactamente de tu jornada inicial
-const partidosJornada2 = [
+        const partidosJornada2 = [
   { id: 1, local: "Atlante", visitante: "América", dia: "Viernes 21:00 PM" },
   { id: 2, local: "Tijuana", visitante: "León", dia: "Viernes 21:00 PM" },
   { id: 3, local: "Chivas", visitante: "Juárez", dia: "Sábado 17:00 PM" },
@@ -55,7 +55,7 @@ const partidosJornada2 = [
 ];
 
         // 4. Inyectar la nueva lista limpia
-        await Partido.insertMany(partidosJornada1);
+        await Partido.insertMany(partidosJornada2);
 
         res.json({ mensaje: "🚀 Sistema reiniciado: Usuarios limpiados y Jornada 1 cargada con éxito." });
     } catch (error) {
