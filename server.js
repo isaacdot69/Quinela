@@ -1,18 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const ExcelJS = require('exceljs'); 
+const path = require('path');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Middleware para JSON y archivos estáticos
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static(path.join(__dirname, '.')));
 
-// Tu cadena de conexión a MongoDB Atlas
+// Conexión a MongoDB Atlas
 const mongoURI = 'mongodb+srv://ig27sales_db_user:LfYYeM8SldwkXT9L@cluster0.a7nleu1.mongodb.net/quinela?appName=Cluster0';
 
 mongoose.connect(mongoURI)
     .then(() => console.log("✅ Conectado a MongoDB"))
-    .catch(err => console.error("❌ Error de conexión", err));
+    .catch(err => console.error("❌ Error de conexión a MongoDB:", err));
 
 // Esquema de Participantes
 const Quinela = mongoose.model('Quinela', {
@@ -21,7 +24,7 @@ const Quinela = mongoose.model('Quinela', {
     fecha: { type: Date, default: Date.now }
 });
 
-// Esquema de Partidos (Ajustado para aceptar la propiedad 'dia')
+// Esquema de Partidos
 const Partido = mongoose.model('Partido', {
     id: Number,
     local: String,
@@ -29,7 +32,12 @@ const Partido = mongoose.model('Partido', {
     dia: String
 });
 
-// RUTA ADMINISTRATIVA: Borra todo lo viejo y carga los 10 partidos de la Jornada 2
+// RUTA PRINCIPAL (Servir el index.html de forma explícita)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// RUTA ADMINISTRATIVA: Reiniciar jornada y cargar los 10 partidos
 app.post('/admin/actualizar-jornada', async (req, res) => {
     try {
         await Quinela.deleteMany({});
@@ -54,34 +62,39 @@ app.post('/admin/actualizar-jornada', async (req, res) => {
 
         res.json({ mensaje: "🚀 Sistema reiniciado: Registros limpiados y Jornada 2 cargada con éxito." });
     } catch (error) {
-        console.error(error);
+        console.error("Error en /admin/actualizar-jornada:", error);
         res.status(500).json({ mensaje: "Error al reiniciar la jornada" });
     }
 });
 
-// RUTA: Envía los partidos al Frontend
+// RUTA: Obtener lista de partidos para el frontend
 app.get('/obtener-partidos', async (req, res) => {
     try {
         const partidos = await Partido.find().sort({ id: 1 });
         res.json(partidos);
     } catch (error) {
+        console.error("Error en /obtener-partidos:", error);
         res.status(500).json({ mensaje: "Error al obtener partidos" });
     }
 });
 
-// RUTA: Recibe la quinela jugada por un participante
+// RUTA: Guardar pronóstico enviado
 app.post('/enviar-quinela', async (req, res) => {
     try {
         const { nombre, pronosticos } = req.body;
+        if (!nombre || !pronosticos) {
+            return res.status(400).json({ mensaje: "Faltan datos obligatorios" });
+        }
         const nuevaQuinela = new Quinela({ nombre, pronosticos });
         await nuevaQuinela.save();
         res.json({ mensaje: "¡Pronóstico registrado! Ahora envía tu comprobante." });
     } catch (error) {
-        res.status(500).json({ mensaje: "Error al guardar" });
+        console.error("Error en /enviar-quinela:", error);
+        res.status(500).json({ mensaje: "Error al guardar la quiniela" });
     }
 });
 
-// RUTA: Genera el archivo Excel
+// RUTA: Descargar reporte Excel
 app.get('/exportar-excel', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 }).lean();
@@ -115,16 +128,18 @@ app.get('/exportar-excel', async (req, res) => {
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
+        console.error("Error en /exportar-excel:", error);
         res.status(500).send("Error al generar el archivo Excel");
     }
 });
 
-// RUTA HTML: Panel de Administración
+// RUTA HTML: Panel de administración y resultados
 app.get('/ver-resultados', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 });
         
-        let html = `<html><head><title>Resultados</title>
+        let html = `<!DOCTYPE html><html><head><title>Resultados</title>
+        <meta charset="UTF-8">
         <style>
             body{font-family:sans-serif;text-align:center;padding:20px; background: #f8f9fa;}
             table{margin:auto;border-collapse:collapse;width:90%; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden;}
@@ -155,7 +170,7 @@ app.get('/ver-resultados', async (req, res) => {
                     alert("❌ Contraseña incorrecta.");
                     return;
                 }
-                if (confirm("🚨 ¿Seguro que quieres BORRAR el historial de apuestas y cargar de nuevo los partidos limpios?")) {
+                if (confirm("🚨 ¿Seguro que quieres BORRAR el historial y cargar los nuevos partidos?")) {
                     try {
                         const res = await fetch('/admin/actualizar-jornada', { method: 'POST' });
                         const data = await res.json();
@@ -167,14 +182,12 @@ app.get('/ver-resultados', async (req, res) => {
                 }
             };
         </script>
-        `;
-
-        html += `</body></html>`;
+        </body></html>`;
         
         res.send(html);
     } catch (error) { 
-        res.send("Error al cargar la página de resultados"); 
+        res.status(500).send("Error al cargar la página de resultados"); 
     }
 });
 
-app.listen(port, () => console.log(`🚀 Servidor en http://localhost:${port}`));
+app.listen(port, () => console.log(`🚀 Servidor corriendo en puerto ${port}`));
