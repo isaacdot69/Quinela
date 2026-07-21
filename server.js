@@ -41,17 +41,18 @@ app.post('/admin/actualizar-jornada', async (req, res) => {
         await Partido.deleteMany({});
 
         // 3. Partidos extraídos exactamente de tu jornada inicial
-        const partidosJornada1 = [
-            { id: 1, local: "Necaxa", visitante: "Atlante", fechaPartido: "16/7", horaPartido: "7:00 p.m." },
-            { id: 2, local: "Tijuana", visitante: "Tigres", fechaPartido: "16/7", horaPartido: "9:00 p.m." },
-            { id: 3, local: "San Luis", visitante: "Cruz Azul", fechaPartido: "17/7", horaPartido: "7:00 p.m." },
-            { id: 4, local: "León", visitante: "Atlas", fechaPartido: "17/7", horaPartido: "7:00 p.m." },
-            { id: 5, local: "Juárez", visitante: "Puebla", fechaPartido: "17/7", horaPartido: "9:00 p.m." },
-            { id: 6, local: "Pumas", visitante: "Pachuca", fechaPartido: "18/7", horaPartido: "5:00 p.m." },
-            { id: 7, local: "Monterrey", visitante: "Santos", fechaPartido: "18/7", horaPartido: "7:00 p.m." },
-            { id: 8, local: "Guadalajara", visitante: "Toluca", fechaPartido: "18/7", horaPartido: "7:00 p.m." },
-            { id: 9, local: "Querétaro", visitante: "América", fechaPartido: "18/7", horaPartido: "9:00 p.m." }
-        ];
+const partidosJornada2 = [
+  { id: 1, local: "Atlante", visitante: "América", dia: "Viernes 21:00 PM" },
+  { id: 2, local: "Tijuana", visitante: "León", dia: "Viernes 21:00 PM" },
+  { id: 3, local: "Chivas", visitante: "Juárez", dia: "Sábado 17:00 PM" },
+  { id: 4, local: "Toluca", visitante: "Cruz Azul", dia: "Sábado 18:30 PM" },
+  { id: 5, local: "Santos", visitante: "Atlas", dia: "Sábado 21:00 PM" },
+  { id: 6, local: "Tigres", visitante: "San Luis", dia: "Sábado 21:00 PM" },
+  { id: 7, local: "Cruzeiro", visitante: "Botafogo", dia: "Domingo 13:00 PM" },
+  { id: 8, local: "Flamengo", visitante: "Sao Paulo", dia: "Domingo 15:30 PM" },
+  { id: 9, local: "Necaxa", visitante: "Rayados", dia: "Domingo 17:00 PM" },
+  { id: 10, local: "Pachuca", visitante: "Querétaro", dia: "Domingo 19:00 PM" }
+];
 
         // 4. Inyectar la nueva lista limpia
         await Partido.insertMany(partidosJornada1);
