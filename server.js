@@ -14,57 +14,52 @@ mongoose.connect(mongoURI)
     .then(() => console.log("✅ Conectado a MongoDB"))
     .catch(err => console.error("❌ Error de conexión", err));
 
-// Esquema de Participantes (Quinelas guardadas)
+// Esquema de Participantes
 const Quinela = mongoose.model('Quinela', {
     nombre: String,
     pronosticos: Object,
     fecha: { type: Date, default: Date.now }
 });
 
-// Esquema para la Tabla de Calendario / Partidos de la Jornada
+// Esquema de Partidos (Ajustado para aceptar la propiedad 'dia')
 const Partido = mongoose.model('Partido', {
     id: Number,
     local: String,
     visitante: String,
-    fechaPartido: String,
-    horaPartido: String
+    dia: String
 });
 
-// RUTA ADMINISTRATIVA: Borra todo lo viejo de la BD y carga los partidos de la Jornada 1
+// RUTA ADMINISTRATIVA: Borra todo lo viejo y carga los 10 partidos de la Jornada 2
 app.post('/admin/actualizar-jornada', async (req, res) => {
     try {
-        // 1. Borrar todas las quinelas de usuarios del pasado
         await Quinela.deleteMany({});
         console.log("🗑️ Registros de usuarios anteriores eliminados.");
 
-        // 2. Borrar partidos de la jornada anterior
         await Partido.deleteMany({});
 
-        // 3. Partidos extraídos exactamente de tu jornada inicial
         const partidosJornada2 = [
-  { id: 1, local: "Atlante", visitante: "América", dia: "Viernes 21:00 PM" },
-  { id: 2, local: "Tijuana", visitante: "León", dia: "Viernes 21:00 PM" },
-  { id: 3, local: "Chivas", visitante: "Juárez", dia: "Sábado 17:00 PM" },
-  { id: 4, local: "Toluca", visitante: "Cruz Azul", dia: "Sábado 18:30 PM" },
-  { id: 5, local: "Santos", visitante: "Atlas", dia: "Sábado 21:00 PM" },
-  { id: 6, local: "Tigres", visitante: "San Luis", dia: "Sábado 21:00 PM" },
-  { id: 7, local: "Cruzeiro", visitante: "Botafogo", dia: "Domingo 13:00 PM" },
-  { id: 8, local: "Flamengo", visitante: "Sao Paulo", dia: "Domingo 15:30 PM" },
-  { id: 9, local: "Necaxa", visitante: "Rayados", dia: "Domingo 17:00 PM" },
-  { id: 10, local: "Pachuca", visitante: "Querétaro", dia: "Domingo 19:00 PM" }
-];
+            { id: 1, local: "Atlante", visitante: "América", dia: "Viernes 21:00 PM" },
+            { id: 2, local: "Tijuana", visitante: "León", dia: "Viernes 21:00 PM" },
+            { id: 3, local: "Chivas", visitante: "Juárez", dia: "Sábado 17:00 PM" },
+            { id: 4, local: "Toluca", visitante: "Cruz Azul", dia: "Sábado 18:30 PM" },
+            { id: 5, local: "Santos", visitante: "Atlas", dia: "Sábado 21:00 PM" },
+            { id: 6, local: "Tigres", visitante: "San Luis", dia: "Sábado 21:00 PM" },
+            { id: 7, local: "Cruzeiro", visitante: "Botafogo", dia: "Domingo 13:00 PM" },
+            { id: 8, local: "Flamengo", visitante: "Sao Paulo", dia: "Domingo 15:30 PM" },
+            { id: 9, local: "Necaxa", visitante: "Rayados", dia: "Domingo 17:00 PM" },
+            { id: 10, local: "Pachuca", visitante: "Querétaro", dia: "Domingo 19:00 PM" }
+        ];
 
-        // 4. Inyectar la nueva lista limpia
         await Partido.insertMany(partidosJornada2);
 
-        res.json({ mensaje: "🚀 Sistema reiniciado: Usuarios limpiados y Jornada 1 cargada con éxito." });
+        res.json({ mensaje: "🚀 Sistema reiniciado: Registros limpiados y Jornada 2 cargada con éxito." });
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: "Error al reiniciar la jornada" });
     }
 });
 
-// RUTA: Envía la lista de partidos de la base de datos al frontend
+// RUTA: Envía los partidos al Frontend
 app.get('/obtener-partidos', async (req, res) => {
     try {
         const partidos = await Partido.find().sort({ id: 1 });
@@ -74,7 +69,7 @@ app.get('/obtener-partidos', async (req, res) => {
     }
 });
 
-// RUTA: Recibe la quinela jugada por un participante y la guarda
+// RUTA: Recibe la quinela jugada por un participante
 app.post('/enviar-quinela', async (req, res) => {
     try {
         const { nombre, pronosticos } = req.body;
@@ -86,7 +81,7 @@ app.post('/enviar-quinela', async (req, res) => {
     }
 });
 
-// RUTA: Genera el archivo Excel de descargas
+// RUTA: Genera el archivo Excel
 app.get('/exportar-excel', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 }).lean();
@@ -124,7 +119,7 @@ app.get('/exportar-excel', async (req, res) => {
     }
 });
 
-// RUTA HTML: Panel de Administración / Ver la tabla de registros en tiempo real
+// RUTA HTML: Panel de Administración
 app.get('/ver-resultados', async (req, res) => {
     try {
         const resultados = await Quinela.find().sort({ fecha: -1 });
@@ -143,11 +138,7 @@ app.get('/ver-resultados', async (req, res) => {
         </style></head><body>`;
         
         html += `<h1>📈 Participantes Registrados</h1>`;
-        
-        // Botón de descarga de Excel existente
         html += `<a href="/exportar-excel" class="btn-excel">📊 Descargar Reporte Excel</a>`;
-        
-        // NUEVO: Botón Rojo de Reinicio
         html += `<button id="btnReiniciarTodo" class="btn-reiniciar">⚠️ Cambiar/Reiniciar Jornada</button>`;
         
         html += `<table><tr><th>Nombre</th><th>Fecha</th><th>Pronósticos</th></tr>`;
@@ -156,7 +147,6 @@ app.get('/ver-resultados', async (req, res) => {
         });
         html += `</table><br><a href="/" class="btn-volver">← Volver al Inicio</a>`;
 
-        // NUEVO: Script de validación con contraseña integrado para proteger la base de datos
         html += `
         <script>
             document.getElementById('btnReiniciarTodo').onclick = async () => {
