@@ -1,208 +1,175 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Quinela Futbolera - $20</title>
-    <style>
-        body { font-family: sans-serif; background: #f0f2f5; text-align: center; padding: 20px; }
-        .contenedor { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .pago-info { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #856404; }
-        .partido { border-bottom: 1px solid #eee; padding: 15px 0; }
-        input[type="text"] { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; background: white; }
-        button.seleccionado { background: #28a745; color: white; border-color: #1e7e34; font-weight: bold; }
-        #btnEnviar { background: #25d366; color: white; border: none; padding: 15px; width: 100%; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        
-        /* Pantalla completa de carga */
-        .loader-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999; 
-            display: none; 
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiniela Jornada 2 - Apertura 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; }
+    .container { max-width: 650px; width: 100%; background: #1e293b; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    
+    header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #334155; padding-bottom: 15px; }
+    h1 { color: #38bdf8; font-size: 1.8rem; margin-bottom: 5px; }
+    p.subtitle { color: #94a3b8; font-size: 0.95rem; }
 
-        /* El círculo verde que gira */
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #28a745; 
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; color: #e2e8f0; }
+    input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 1rem; outline: none; }
+    input[type="text"]:focus { border-color: #38bdf8; }
 
-        /* Texto de aviso */
-        .loader-text {
-            color: white;
-            font-family: sans-serif;
-            margin-top: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            padding: 0 20px;
-        }
+    .partido-card { background: #334155; border-radius: 10px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+    .partido-header { font-size: 0.8rem; color: #38bdf8; font-weight: bold; text-transform: uppercase; }
+    .teams { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.05rem; }
+    .vs { color: #94a3b8; font-size: 0.85rem; }
 
-        /* Botón de WhatsApp de respaldo */
-        #btnWhatsRespaldo {
-            display: none;
-            background: #25d366;
-            color: white;
-            text-decoration: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 25px;
-            margin-top: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
+    .options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 5px; }
+    .options label { background: #1e293b; border: 1px solid #475569; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s ease; margin: 0; }
+    .options input[type="radio"] { display: none; }
+    .options input[type="radio"]:checked + span { color: #38bdf8; font-weight: bold; }
+    .options label:has(input[type="radio"]:checked) { border-color: #38bdf8; background: #0f172a; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    .btn-submit { width: 100%; padding: 15px; background: #22c55e; color: #fff; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+    .btn-submit:hover { background: #16a34a; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; padding: 20px; z-index: 100; }
+    .modal-content { background: #1e293b; padding: 25px; border-radius: 16px; max-width: 450px; width: 100%; text-align: center; border: 1px solid #38bdf8; }
+    .modal h2 { color: #22c55e; margin-bottom: 10px; }
+    .modal p { color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px; }
+    .bank-details { background: #0f172a; padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 20px; font-size: 0.9rem; border: 1px dashed #475569; }
+    .btn-whatsapp { display: inline-block; width: 100%; padding: 12px; background: #25d366; color: white; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 1rem; }
+  </style>
 </head>
 <body>
 
-    <div class="contenedor">
-        <h1>🏆 Quinelas GS27</h1>
-        
-        <div class="pago-info">
-            <strong>💰 Costo: $20 MXN</strong><br>
-            💳 Transferir a: <strong>5101 2596 4204 0520</strong><br>
-            <em>Banco: NU - A nombre de: Angel Isaac Gtz</em>
-        </div>
+  <div class="container">
+    <header>
+      <h1>⚽ QUINIELA JORNADA 2</h1>
+      <p class="subtitle">Selecciona tus pronósticos y guarda tu participación</p>
+    </header>
 
-        <input type="text" id="nombreUsuario" placeholder="Escribe tu nombre completo" required>
-        
-        <div id="contenedor-partidos"></div>
+    <form id="quinelaForm">
+      <div class="form-group">
+        <label for="nombre">Nombre Completo:</label>
+        <input type="text" id="nombre" placeholder="Ej. Juan Pérez" required>
+      </div>
 
-        <button id="btnEnviar">✅ Guardar y Enviar Comprobante</button>
+      <div id="contenedor-partidos">
+        <p style="text-align: center; color: #94a3b8;">Cargando partidos...</p>
+      </div>
+
+      <button type="submit" class="btn-submit">🚀 Registrar Mi Quiniela</button>
+    </form>
+  </div>
+
+  <!-- Modal de Confirmación y Pago -->
+  <div id="modalPago" class="modal">
+    <div class="modal-content">
+      <h2>🎉 ¡Pronóstico Guardado!</h2>
+      <p>Para asegurar tu lugar en la bolsa acumulada, realiza tu pago de <strong>$20 MXN</strong> y envía tu comprobante.</p>
+      
+      <div class="bank-details">
+        <p><strong>📌 Datos para Transferencia:</strong></p>
+        <p><strong>Banco:</strong> [TU BANCO AQUÍ]</p>
+        <p><strong>CLABE / Tarjeta:</strong> [TU NÚMERO AQUÍ]</p>
+        <p><strong>Nombre:</strong> [TU NOMBRE AQUÍ]</p>
+      </div>
+
+      <a id="btnWA" href="#" target="_blank" class="btn-whatsapp">📱 Enviar Comprobante por WhatsApp</a>
     </div>
+  </div>
 
-    <div id="miLoader" class="loader-container">
-        <div class="spinner" id="miSpinner"></div>
-        <div class="loader-text" id="miTextoLoader">Guardando tus pronósticos en la base de datos...</div>
-        <a id="btnWhatsRespaldo" href="#" target="_blank">📲 Clic aquí para enviar por WhatsApp</a>
-    </div>
+  <script>
+    let partidosData = [];
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            let partidos = []; 
-            const pronosticos = {};
-            
-            const lista = document.getElementById('contenedor-partidos');
-            const btnEnviar = document.getElementById('btnEnviar');
+    // 1. Cargar Partidos Dinámicamente desde MongoDB
+    async function cargarPartidos() {
+      try {
+        const res = await fetch('/obtener-partidos');
+        partidosData = await res.json();
+        
+        const contenedor = document.getElementById('contenedor-partidos');
+        contenedor.innerHTML = '';
 
-            async function cargarPartidosDelServidor() {
-                if (!lista) return;
-                try {
-                    const respuesta = await fetch('/obtener-partidos');
-                    partidos = await respuesta.json();
-                    
-                    if (partidos.length === 0) {
-                        lista.innerHTML = "<p>⏳ No hay partidos cargados para esta jornada actualmente.</p>";
-                        return;
-                    }
+        if (partidosData.length === 0) {
+          contenedor.innerHTML = '<p style="text-align:center;">No hay partidos cargados para esta jornada.</p>';
+          return;
+        }
 
-                    lista.innerHTML = ""; 
-                    partidos.forEach(p => {
-                        const div = document.createElement('div');
-                        div.className = 'partido';
-                        div.innerHTML = `
-                            <small style="color: #666; display: block; margin-top: 10px;">🗓️ ${p.fechaPartido || ''} - ⏰ ${p.horaPartido || ''}</small>
-                            <h3 style="margin: 5px 0 10px 0;">${p.local} vs ${p.visitante}</h3>
-                            <button class="btn-opcion" data-id="${p.id}" data-valor="Local">L</button>
-                            <button class="btn-opcion" data-id="${p.id}" data-valor="Empate">E</button>
-                            <button class="btn-opcion" data-id="${p.id}" data-valor="Visitante">V</button>
-                        `;
-                        lista.appendChild(div);
-                    });
-
-                    // Asignar clics a los botones creados
-                    lista.querySelectorAll('.btn-opcion').forEach(boton => {
-                        boton.onclick = function() {
-                            const id = this.getAttribute('data-id');
-                            const valor = this.getAttribute('data-valor');
-                            
-                            pronosticos[id] = valor;
-                            
-                            const hermanos = this.parentElement.querySelectorAll('.btn-opcion');
-                            hermanos.forEach(b => b.classList.remove('seleccionado'));
-                            this.classList.add('seleccionado');
-                        };
-                    });
-
-                } catch (error) {
-                    console.error("Error al cargar partidos:", error);
-                    lista.innerHTML = "<p>❌ Error al cargar el calendario de partidos.</p>";
-                }
-            }
-
-            cargarPartidosDelServidor();
-
-            if (btnEnviar) {
-                btnEnviar.onclick = async () => {
-                    const nombre = document.getElementById('nombreUsuario').value;
-                    const loader = document.getElementById('miLoader');
-                    const spinner = document.getElementById('miSpinner');
-                    const textoLoader = document.getElementById('miTextoLoader');
-                    const btnRespaldo = document.getElementById('btnWhatsRespaldo');
-                    
-                    if (!nombre || Object.keys(pronosticos).length < partidos.length) {
-                        alert("⚠️ Por favor completa tu nombre y todos los partidos.");
-                        return;
-                    }
-
-                    loader.style.display = 'flex';
-                    if(spinner) spinner.style.display = 'block';
-                    if(btnRespaldo) btnRespaldo.style.display = 'none';
-                    if(textoLoader) textoLoader.innerText = "Guardando tus pronósticos en la base de datos...";
-
-                    try {
-                        const respuesta = await fetch('/enviar-quinela', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ nombre, pronosticos })
-                        });
-
-                        if (!respuesta.ok) throw new Error('Error al guardar en BD');
-
-                        const numTelefono = "523313128924"; 
-                        let partidosTexto = "";
-                        partidos.forEach(p => {
-                            partidosTexto += `• ${p.local} vs ${p.visitante}: *${pronosticos[p.id]}*\n`;
-                        });
-
-                        let texto = `¡Hola! Ya registré mi quinela. ⚽🏆\n\n👤 *Nombre:* ${nombre}\n\n📝 *Mis Pronósticos:*\n${partidosTexto}\nAdjunto foto de mi comprobante de $20.`;
-                        const urlWhastapp = `https://wa.me/${numTelefono}?text=${encodeURIComponent(texto)}`;
-
-                        if(spinner) spinner.style.display = 'none'; 
-                        if(textoLoader) textoLoader.innerHTML = "¡Datos guardados con éxito! 🎉<br><br>Tu navegador bloqueó el salto automático. Por favor, presiona el botón de abajo:";
-                        
-                        if(btnRespaldo) {
-                            btnRespaldo.href = urlWhastapp;
-                            btnRespaldo.style.display = 'inline-block';
-                        }
-
-                        window.location.href = urlWhastapp;
-
-                    } catch (error) {
-                        if(loader) loader.style.display = 'none';
-                        console.error(error);
-                        alert("❌ Hubo un error al conectar con el servidor. Inténtalo de nuevo.");
-                    }
-                };
-            }
+        partidosData.forEach(p => {
+          contenedor.innerHTML += `
+            <div class="partido-card">
+              <div class="partido-header">📅 ${p.dia || 'Fin de Semana'}</div>
+              <div class="teams">
+                <span>${p.local}</span>
+                <span class="vs">VS</span>
+                <span>${p.visitante}</span>
+              </div>
+              <div class="options">
+                <label>
+                  <input type="radio" name="p_${p.id}" value="Local" required>
+                  <span>L</span>
+                </label>
+                <label>
+                  <input type="radio" name="p_${p.id}" value="Empate" required>
+                  <span>E</span>
+                </label>
+                <label>
+                  <input type="radio" name="p_${p.id}" value="Visitante" required>
+                  <span>V</span>
+                </label>
+              </div>
+            </div>
+          `;
         });
-    </script>
+      } catch (error) {
+        console.error('Error al obtener partidos:', error);
+        document.getElementById('contenedor-partidos').innerHTML = '<p style="color:#ef4444; text-align:center;">Error al conectar con el servidor.</p>';
+      }
+    }
+
+    // 2. Enviar Quiniela al Servidor
+    document.getElementById('quinelaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nombre = document.getElementById('nombre').value.trim();
+      const pronosticos = {};
+
+      partidosData.forEach(p => {
+        const seleccion = document.querySelector(`input[name="p_${p.id}"]:checked`);
+        if (seleccion) {
+          pronosticos[`p${p.id}`] = seleccion.value;
+        }
+      });
+
+      try {
+        const respuesta = await fetch('/enviar-quinela', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, pronosticos })
+        });
+
+        const data = await respuesta.json();
+
+        if (respuesta.ok) {
+          // Configurar mensaje de WhatsApp
+          const numTelefono = "3325223242"; // Pónle tu número de teléfono con lada
+          const msjWA = encodeURIComponent(`¡Hola! Ya llené mi quiniela a nombre de *${nombre}*. Te adjunto mi comprobante de pago.`);
+          document.getElementById('btnWA').href = `https://wa.me/${numTelefono}?text=${msjWA}`;
+
+          // Mostrar Modal
+          document.getElementById('modalPago').style.display = 'flex';
+        } else {
+          alert('❌ Error: ' + data.mensaje);
+        }
+      } catch (err) {
+        alert('❌ Ocurrió un error al enviar tu pronóstico.');
+      }
+    });
+
+    // Cargar al iniciar
+    document.addEventListener('DOMContentLoaded', cargarPartidos);
+  </script>
 </body>
 </html>
